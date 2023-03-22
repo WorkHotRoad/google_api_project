@@ -27,6 +27,8 @@ info = {
     'client_x509_cert_url':  os.environ['CLIENT_X509_CERT_URL']
 }
 
+
+# Функция авторизации, которая использует данные из .env.
 def auth():
     # Создаём экземпляр класса Credentials.
     credentials = Credentials.from_service_account_info(
@@ -34,6 +36,7 @@ def auth():
     service = discovery.build('sheets', 'v4', credentials=credentials)
     return service, credentials
 
+# Функция создания документа
 def create_spreadsheet(service):
     # Тело spreadsheet
     spreadsheet_body = {
@@ -62,6 +65,7 @@ def create_spreadsheet(service):
     print('https://docs.google.com/spreadsheets/d/' + spreadsheet_id)
     return spreadsheet_id
 
+# Функция выдачи разрешений вашему аккаунту.
 def set_user_permissions(spreadsheet_id, credentials):
     permissions_body={'type': 'user', # Тип учетных данных.
                       'role': 'writer', # Права доступа для учётной записи.
@@ -77,7 +81,37 @@ def set_user_permissions(spreadsheet_id, credentials):
         fields='id'
     ).execute()
 
+# Новая функция! Тут обновляются данные документа.
+def spreadsheet_update_values(service, spreadsheetId):
+    # Данные для заполнения: выводятся в таблице сверху вниз, слева направо.
+    table_values = [
+        ['Бюджет путешествий'],
+        ['Весь бюджет', '5000'],
+        ['Все расходы', '=SUM(E7:E30)'],
+        ['Остаток', '=B2-B3'],
+        ['Расходы'],
+        ['Описание', 'Тип', 'Кол-во', 'Цена', 'Стоимость'],
+        ['Перелет', 'Транспорт', '2', '400', '=C7*D7']
+    ]
+    
+    # Тело запроса.
+    request_body = {
+        'majorDimension': 'ROWS',
+        'values': table_values
+    }
+    # Формирование запроса к Google Sheets API. 
+    request = service.spreadsheets().values().update(
+        spreadsheetId=spreadsheetId,
+        range='Отпуск 2077!A1:F20',
+        valueInputOption='USER_ENTERED',
+        body=request_body
+    )
+    # Выполнение запроса.
+    request.execute()
 
+
+# Вызов функций.
 service, credentials = auth()
 spreadsheetId = create_spreadsheet(service)
 set_user_permissions(spreadsheetId, credentials)
+spreadsheet_update_values(service, spreadsheetId) 
